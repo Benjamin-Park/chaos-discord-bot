@@ -4,8 +4,6 @@ use poise::{
     Modal,
 };
 
-static REPORT_CHANNELID: u64 = 998541060202569779;
-
 #[derive(Debug, Modal)]
 #[name = "Report User"] // Struct name by default
 struct ReportModal {
@@ -30,7 +28,12 @@ pub async fn report(
     let reporter = ctx.interaction.user();
     println!("Got data: {:?}", data);
 
-    ChannelId(REPORT_CHANNELID)
+    let report_channel_id: u64 = std::env::var("CHAOS_BOT_REPORT_CHANNEL")
+        .expect("Missing REPORT_CHANNEL_ID")
+        .parse::<u64>()
+        .expect("CHAOS_BOT_REPORT_CHANNEL is not a valid u64");
+
+    ChannelId(report_channel_id)
         .send_message(&ctx.discord.http, |m| {
             m.embed(|e| {
                 e.title("Report")

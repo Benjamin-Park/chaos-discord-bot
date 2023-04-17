@@ -4,23 +4,15 @@ use poise::{serenity_prelude::{self as serenity, SerenityError, ChannelId, /*Use
 use ::serenity::model::channel::{PermissionOverwrite, PermissionOverwriteType};
 use ::serenity::model::permissions::Permissions;
 
+use std::env;
+
 /// Archives a channel
 #[poise::command(slash_command, prefix_command, default_member_permissions = "MANAGE_CHANNELS")]
 pub async fn archive(
     ctx: Context<'_>,
     #[description = "Channel to archive"] mut channel: serenity::GuildChannel,
 ) -> Result<(), Error> {
-    // manual parse channel from id
-    // let channel_id = ChannelId::from(channel.replace(['#', '<', '>'], "").parse::<u64>()?);
-    
-    // Manually set channel permissions
-    // let perms = vec![PermissionOverwrite {
-    //     allow: Permissions::VIEW_CHANNEL,
-    //     deny: Permissions::SEND_MESSAGES,
-    //     kind: PermissionOverwriteType::Role(RoleId(784268832814268446)),
-    // }];
-    // let archive = ChannelId(1068083738195546123); // Testing Server
-    let archive = ChannelId(1016611522644017213); // Production
+    let archive = ChannelId(env::var("CHAOS_BOT_ARCHIVE_CATEGORY").expect("missing archive category id").parse::<u64>().unwrap());
     // Requires bot to have permission to view category channels
     let category = archive.to_channel(&ctx.discord().http).await;
     // TODO: cleanupError handling when missing access
@@ -54,9 +46,9 @@ pub async fn lock(
 
     emoji.roles.push(role.id);
 
-    emoji.delete(ctx.discord()).await.unwrap();
+    // emoji.delete(ctx.discord()).await.unwrap();
 
-    // ctx.say(format!("{} locked to {:?}", emoji.name, emoji.roles)).await?;
+    ctx.say(format!("{} locked to {:?}", emoji.name, emoji.roles)).await?;
 
     Ok(())
 }
@@ -137,7 +129,6 @@ pub async fn voice_ban(
     ctx: Context<'_>,
     #[description = "Selected user"] user: serenity::User,
 ) -> Result<(), Error> {
-    // let general_category = ChannelId(888657317996929055);
     let ban_perms = PermissionOverwrite {
         allow: Permissions::empty(),
         deny: Permissions::CONNECT,
@@ -151,7 +142,6 @@ pub async fn voice_ban(
             channel.create_permission(&ctx.discord().http, &ban_perms).await?;
         }
     }
-    // ChannelId(784268832814268449).create_permission(&ctx.discord().http, &ban_perms).await?; // DEBUG: Remove
     
     ctx.say(format!("{} Restricted from voice channels", user)).await?;
     Ok(())
@@ -163,7 +153,6 @@ pub async fn voice_unban(
     ctx: Context<'_>,
     #[description = "Selected user"] user: serenity::User,
 ) -> Result<(), Error> {    
-    // ChannelId(784268832814268449).delete_permission(&ctx.discord().http, PermissionOverwriteType::Member(user.id)).await?;
     
     let guild_channels = ctx.guild().unwrap().channels(&ctx.discord().http).await.unwrap();
     for (_channel_id, channel) in guild_channels {

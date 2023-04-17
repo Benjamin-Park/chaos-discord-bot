@@ -1,14 +1,12 @@
 use poise::serenity_prelude as serenity;
 // use poise::serenity_prelude::interaction;
 
-use std::fs;
-// use std::env;
+use std::env;
+
+use dotenv::dotenv;
 
 mod commands;
 use commands::*;
-
-// mod database;
-// use database::*;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
@@ -28,16 +26,17 @@ async fn event_listener(
     match event {
         poise::Event::Ready { data_about_bot } => {
             println!("{} is connected!", data_about_bot.user.name);
-            _ctx.set_activity(serenity::Activity::watching("An idiot program")).await;
+            let activity_name = env::var("CHAOS_BOT_ACTIVITY").unwrap_or_else(|_| "An idiot program".to_string());
+            _ctx.set_activity(serenity::Activity::watching(activity_name)).await;
         }
         poise::Event::GuildMemberAddition { new_member } => {
-            new_member.clone().add_role(&_ctx.http, 905386672831725588).await.expect("unable to add role"); // Production
-            // new_member.clone().add_role(&_ctx.http, 1088027798058303588).await.expect("unable to add role"); // Testing
+            let role_id = env::var("CHAOS_BOT_JOIN_ROLE").expect("missing join role id").parse::<u64>().unwrap();
+            new_member.clone().add_role(&_ctx.http, role_id).await.expect("unable to add role");
         }
         poise::Event::InteractionCreate { interaction } => {
             // TODO: Implement response for button interactions
             match interaction {
-                serenity::Interaction::Ping(_) => todo!(),
+                serenity::Interaction::Ping(_) => (),
                 serenity::Interaction::ApplicationCommand(_) => {
                     let i = interaction.clone();
                     let i = i.application_command().unwrap();
@@ -48,8 +47,8 @@ async fn event_listener(
                     let i = i.message_component().unwrap();
                     println!("[btn] {} : {}", &i.id, &i.data.custom_id);
                 },
-                serenity::Interaction::Autocomplete(_) => todo!(),
-                serenity::Interaction::ModalSubmit(_) => todo!(),
+                serenity::Interaction::Autocomplete(_) => (),
+                serenity::Interaction::ModalSubmit(_) => (),
             }
         }
         _ => {}
@@ -67,8 +66,8 @@ async fn register(ctx: Context<'_>) -> Result<(), Error> {
 
 #[tokio::main]
 async fn main() {
-    // let token = env::var("TOKEN").expect("token not found in env");
-    let token = fs::read_to_string("./token").expect("Should be a token file");
+    dotenv().ok();
+    let token = env::var("CHAOS_BOT_TOKEN").expect("missing token");
 
     let options = poise::FrameworkOptions {
         prefix_options: poise::PrefixFrameworkOptions {
